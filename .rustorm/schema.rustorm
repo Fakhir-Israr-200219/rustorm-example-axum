@@ -1,10 +1,15 @@
 // RustORM Schema
 // Documentation: https://github.com/Fakhir-Israr-200219/RustORM
 
+// RustORM Schema
+// Documentation: https://github.com/Fakhir-Israr-200219/RustORM
+
 model User {
     id    Int    @id @default(autoincrement())
     name  String
     place String?
+    hujra String?
+    lips String?
     email String @unique
     posts Post[]
 }

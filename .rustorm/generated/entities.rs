@@ -11,6 +11,8 @@ pub struct UserModel {
     pub id: i32,
     pub name: String,
     pub place: Option<String>,
+    pub hujra: Option<String>,
+    pub lips: Option<String>,
     pub email: String,
     #[sqlx(skip)]
     pub posts: Vec<PostModel>,
@@ -22,18 +24,28 @@ pub struct User;
 pub struct UserCreate {
     pub name: String,
     pub place: Option<String>,
+    pub hujra: Option<String>,
+    pub lips: Option<String>,
     pub email: String,
 }
 
 impl rustorm::executor::InsertData<User> for UserCreate {
     fn columns(&self) -> &'static [&'static str] {
-        &["name", "place", "email"]
+        &["name", "place", "hujra", "lips", "email"]
     }
 
     fn values(&self) -> Vec<rustorm::value::BindValue> {
         vec![
             rustorm::value::BindValue::String((&self.name).clone()),
             match &self.place {
+                Some(value) => rustorm::value::BindValue::String((value).clone()),
+                None => rustorm::value::BindValue::Null,
+            },
+            match &self.hujra {
+                Some(value) => rustorm::value::BindValue::String((value).clone()),
+                None => rustorm::value::BindValue::Null,
+            },
+            match &self.lips {
                 Some(value) => rustorm::value::BindValue::String((value).clone()),
                 None => rustorm::value::BindValue::Null,
             },
@@ -46,6 +58,8 @@ impl rustorm::executor::InsertData<User> for UserCreate {
 pub struct UserUpdate {
     pub name: Option<String>,
     pub place: Option<Option<String>>,
+    pub hujra: Option<Option<String>>,
+    pub lips: Option<Option<String>>,
     pub email: Option<String>,
 }
 
@@ -57,6 +71,12 @@ impl rustorm::executor::UpdateData<User> for UserUpdate {
         }
         if self.place.is_some() {
             columns.push("place");
+        }
+        if self.hujra.is_some() {
+            columns.push("hujra");
+        }
+        if self.lips.is_some() {
+            columns.push("lips");
         }
         if self.email.is_some() {
             columns.push("email");
@@ -70,6 +90,18 @@ impl rustorm::executor::UpdateData<User> for UserUpdate {
             values.push(rustorm::value::BindValue::String((value).clone()));
         }
         if let Some(value) = &self.place {
+            match value {
+                Some(value) => values.push(rustorm::value::BindValue::String((value).clone())),
+                None => values.push(rustorm::value::BindValue::Null),
+            }
+        }
+        if let Some(value) = &self.hujra {
+            match value {
+                Some(value) => values.push(rustorm::value::BindValue::String((value).clone())),
+                None => values.push(rustorm::value::BindValue::Null),
+            }
+        }
+        if let Some(value) = &self.lips {
             match value {
                 Some(value) => values.push(rustorm::value::BindValue::String((value).clone())),
                 None => values.push(rustorm::value::BindValue::Null),
@@ -89,6 +121,8 @@ impl Entity for User {
         Column::new("id"),
         Column::new("name"),
         Column::new("place"),
+        Column::new("hujra"),
+        Column::new("lips"),
         Column::new("email"),
     ];
 }
@@ -102,6 +136,12 @@ impl User {
 
     #[allow(non_upper_case_globals)]
     pub const place: Field<Self, Option<String>> = Field::new("place");
+
+    #[allow(non_upper_case_globals)]
+    pub const hujra: Field<Self, Option<String>> = Field::new("hujra");
+
+    #[allow(non_upper_case_globals)]
+    pub const lips: Field<Self, Option<String>> = Field::new("lips");
 
     #[allow(non_upper_case_globals)]
     pub const email: Field<Self, String> = Field::new("email");

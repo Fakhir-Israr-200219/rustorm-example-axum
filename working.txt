@@ -1,0 +1,67 @@
+Bhai, yeh lo **complete testing checklist**. Jo unit tests mein pass hua hai woh alag hai, Postman pe **end-to-end API testing** abhi baaki hai:
+
+## ✅ Unit Tests (Already Passed)
+- 64/64 CLI tests
+- 116/116 Runtime tests
+
+## ⬜ Postman E2E Testing Checklist
+
+### Basic CRUD
+| # | Endpoint | Method | Status |
+|---|---|---|---|
+| 1 | `/users` | GET | ⬜ |
+| 2 | `/users` | POST | ⬜ |
+| 3 | `/users/:id` | GET | ⬜ |
+| 4 | `/users/:id` | PUT | ⬜ |
+| 5 | `/users/:id` | DELETE | ⬜ |
+| 6 | `/posts` | GET | ⬜ |
+| 7 | `/posts` | POST | ⬜ |
+
+### Eager Loading (Single Level)
+| # | Endpoint | Relation | Status |
+|---|---|---|---|
+| 8 | `/users/with-posts` | 1:N | ⬜ |
+| 9 | `/users/with-profile` | 1:1 | ⬜ |
+| 10 | `/posts/with-user` | N:1 | ⬜ |
+
+### Eager Loading (Nested)
+| # | Endpoint | Relation | Status |
+|---|---|---|---|
+| 11 | `/users/with-posts-comments` | 2-level nested | ⬜ |
+
+### M2M Eager Loading
+| # | Endpoint | Relation | Status |
+|---|---|---|---|
+| 12 | `/tags` | POST (create) | ⬜ |
+| 13 | `/tags` | GET (list) | ⬜ |
+| 14 | `/tags/with-posts` | M2M | ⬜ |
+
+### Error Handling
+| # | Test Case | Expected | Status |
+|---|---|---|---|
+| 15 | GET `/users/9999` | 404 Not Found | ⬜ |
+| 16 | DELETE `/users/9999` | 404 Not Found | ⬜ |
+| 17 | POST `/users` invalid body | 422 / 500 | ⬜ |
+| 18 | POST `/users` duplicate email | Unique violation error | ⬜ |
+
+### Generator Automation Verification
+| # | Test Case | Expected | Status |
+|---|---|---|---|
+| 19 | `@map` field in response | Correct DB column mapped | ⬜ |
+| 20 | Back-ref in JSON | `#[serde(skip)]` working (no circular ref) | ⬜ |
+| 21 | Create struct | No `created_at` / `agefather` with defaults | ⬜ |
+
+---
+
+## Recommended Testing Order
+
+```
+Phase 1: Seed data setup (user + posts + tags + pivot)
+Phase 2: Basic CRUD (#1-7)
+Phase 3: Eager loading (#8-11)
+Phase 4: M2M (#12-14)
+Phase 5: Error handling (#15-18)
+Phase 6: Generator verification (#19-21)
+```
+
+**Total: 21 test cases** — ek session mein easily ho jayega. Jab ready ho toh Phase 1 se start karte hain! 🚀

@@ -1,23 +1,530 @@
-// RustORM Schema
-// Documentation: https://github.com/Fakhir-Israr-200219/RustORM
-
-// RustORM Schema
-// Documentation: https://github.com/Fakhir-Israr-200219/RustORM
-
-model User {
-    id    Int    @id @default(autoincrement())
-    name  String
-    place String?
-    hujra String?
-    lips String?
-    email String @unique
-    posts Post[]
-}
-
-model Post {
-    id      Int    @id @default(autoincrement())
-    title   String
-    content String?
-    user_id Int
-    user    User @relation(fields: [user_id], references: [id])
+{
+  "models": [
+    {
+      "name": "User",
+      "fields": [
+        {
+          "name": "id",
+          "field_type": "Int",
+          "nullable": false,
+          "is_array": false,
+          "attributes": [
+            "Id",
+            {
+              "Default": "AutoIncrement"
+            }
+          ]
+        },
+        {
+          "name": "name",
+          "field_type": "String",
+          "nullable": false,
+          "is_array": false,
+          "attributes": []
+        },
+        {
+          "name": "email",
+          "field_type": "String",
+          "nullable": false,
+          "is_array": false,
+          "attributes": [
+            "Unique"
+          ]
+        },
+        {
+          "name": "place",
+          "field_type": "String",
+          "nullable": true,
+          "is_array": false,
+          "attributes": []
+        },
+        {
+          "name": "age",
+          "field_type": "Int",
+          "nullable": false,
+          "is_array": false,
+          "attributes": []
+        },
+        {
+          "name": "bio",
+          "field_type": "String",
+          "nullable": true,
+          "is_array": false,
+          "attributes": [
+            {
+              "Map": "user_bio"
+            }
+          ]
+        },
+        {
+          "name": "createdAt",
+          "field_type": "DateTime",
+          "nullable": false,
+          "is_array": false,
+          "attributes": [
+            {
+              "Default": "Now"
+            },
+            {
+              "Map": "created_at"
+            }
+          ]
+        },
+        {
+          "name": "posts",
+          "field_type": {
+            "Model": "Post"
+          },
+          "nullable": false,
+          "is_array": true,
+          "attributes": []
+        },
+        {
+          "name": "profile",
+          "field_type": {
+            "Model": "UserProfile"
+          },
+          "nullable": true,
+          "is_array": false,
+          "attributes": []
+        },
+        {
+          "name": "comments",
+          "field_type": {
+            "Model": "Comment"
+          },
+          "nullable": false,
+          "is_array": true,
+          "attributes": []
+        }
+      ],
+      "attributes": [
+        {
+          "Map": "users"
+        },
+        {
+          "Index": [
+            "email"
+          ]
+        },
+        {
+          "Index": [
+            "name",
+            "age"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "UserProfile",
+      "fields": [
+        {
+          "name": "id",
+          "field_type": "Int",
+          "nullable": false,
+          "is_array": false,
+          "attributes": [
+            "Id",
+            {
+              "Default": "AutoIncrement"
+            }
+          ]
+        },
+        {
+          "name": "user_id",
+          "field_type": "Int",
+          "nullable": false,
+          "is_array": false,
+          "attributes": [
+            "Unique"
+          ]
+        },
+        {
+          "name": "avatar",
+          "field_type": "String",
+          "nullable": true,
+          "is_array": false,
+          "attributes": []
+        },
+        {
+          "name": "website",
+          "field_type": "String",
+          "nullable": true,
+          "is_array": false,
+          "attributes": []
+        },
+        {
+          "name": "user",
+          "field_type": {
+            "Model": "User"
+          },
+          "nullable": false,
+          "is_array": false,
+          "attributes": [
+            {
+              "Relation": {
+                "name": null,
+                "fields": [
+                  "user_id"
+                ],
+                "references": [
+                  "id"
+                ],
+                "through": null,
+                "pivot_from": null,
+                "pivot_to": null,
+                "on_delete": "Cascade"
+              }
+            }
+          ]
+        }
+      ],
+      "attributes": [
+        {
+          "Map": "user_profiles"
+        }
+      ]
+    },
+    {
+      "name": "Post",
+      "fields": [
+        {
+          "name": "id",
+          "field_type": "Int",
+          "nullable": false,
+          "is_array": false,
+          "attributes": [
+            "Id",
+            {
+              "Default": "AutoIncrement"
+            }
+          ]
+        },
+        {
+          "name": "title",
+          "field_type": "String",
+          "nullable": false,
+          "is_array": false,
+          "attributes": []
+        },
+        {
+          "name": "content",
+          "field_type": "String",
+          "nullable": true,
+          "is_array": false,
+          "attributes": []
+        },
+        {
+          "name": "published",
+          "field_type": "Boolean",
+          "nullable": false,
+          "is_array": false,
+          "attributes": [
+            {
+              "Default": {
+                "Boolean": false
+              }
+            }
+          ]
+        },
+        {
+          "name": "viewCount",
+          "field_type": "Int",
+          "nullable": false,
+          "is_array": false,
+          "attributes": [
+            {
+              "Default": {
+                "Integer": 0
+              }
+            },
+            {
+              "Map": "view_count"
+            }
+          ]
+        },
+        {
+          "name": "user_id",
+          "field_type": "Int",
+          "nullable": false,
+          "is_array": false,
+          "attributes": []
+        },
+        {
+          "name": "createdAt",
+          "field_type": "DateTime",
+          "nullable": false,
+          "is_array": false,
+          "attributes": [
+            {
+              "Default": "Now"
+            },
+            {
+              "Map": "created_at"
+            }
+          ]
+        },
+        {
+          "name": "user",
+          "field_type": {
+            "Model": "User"
+          },
+          "nullable": false,
+          "is_array": false,
+          "attributes": [
+            {
+              "Relation": {
+                "name": null,
+                "fields": [
+                  "user_id"
+                ],
+                "references": [
+                  "id"
+                ],
+                "through": null,
+                "pivot_from": null,
+                "pivot_to": null,
+                "on_delete": "Cascade"
+              }
+            }
+          ]
+        },
+        {
+          "name": "comments",
+          "field_type": {
+            "Model": "Comment"
+          },
+          "nullable": false,
+          "is_array": true,
+          "attributes": []
+        }
+      ],
+      "attributes": [
+        {
+          "Map": "posts"
+        },
+        {
+          "Index": [
+            "user_id"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Comment",
+      "fields": [
+        {
+          "name": "id",
+          "field_type": "Int",
+          "nullable": false,
+          "is_array": false,
+          "attributes": [
+            "Id",
+            {
+              "Default": "AutoIncrement"
+            }
+          ]
+        },
+        {
+          "name": "body",
+          "field_type": "String",
+          "nullable": false,
+          "is_array": false,
+          "attributes": []
+        },
+        {
+          "name": "post_id",
+          "field_type": "Int",
+          "nullable": false,
+          "is_array": false,
+          "attributes": []
+        },
+        {
+          "name": "author_id",
+          "field_type": "Int",
+          "nullable": false,
+          "is_array": false,
+          "attributes": []
+        },
+        {
+          "name": "createdAt",
+          "field_type": "DateTime",
+          "nullable": false,
+          "is_array": false,
+          "attributes": [
+            {
+              "Default": "Now"
+            },
+            {
+              "Map": "created_at"
+            }
+          ]
+        },
+        {
+          "name": "post",
+          "field_type": {
+            "Model": "Post"
+          },
+          "nullable": false,
+          "is_array": false,
+          "attributes": [
+            {
+              "Relation": {
+                "name": null,
+                "fields": [
+                  "post_id"
+                ],
+                "references": [
+                  "id"
+                ],
+                "through": null,
+                "pivot_from": null,
+                "pivot_to": null,
+                "on_delete": "Cascade"
+              }
+            }
+          ]
+        },
+        {
+          "name": "author",
+          "field_type": {
+            "Model": "User"
+          },
+          "nullable": false,
+          "is_array": false,
+          "attributes": [
+            {
+              "Relation": {
+                "name": null,
+                "fields": [
+                  "author_id"
+                ],
+                "references": [
+                  "id"
+                ],
+                "through": null,
+                "pivot_from": null,
+                "pivot_to": null,
+                "on_delete": null
+              }
+            }
+          ]
+        }
+      ],
+      "attributes": [
+        {
+          "Map": "comments"
+        },
+        {
+          "Index": [
+            "post_id"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Tag",
+      "fields": [
+        {
+          "name": "id",
+          "field_type": "Int",
+          "nullable": false,
+          "is_array": false,
+          "attributes": [
+            "Id",
+            {
+              "Default": "AutoIncrement"
+            }
+          ]
+        },
+        {
+          "name": "name",
+          "field_type": "String",
+          "nullable": false,
+          "is_array": false,
+          "attributes": [
+            "Unique"
+          ]
+        },
+        {
+          "name": "posts",
+          "field_type": {
+            "Model": "Post"
+          },
+          "nullable": false,
+          "is_array": true,
+          "attributes": [
+            {
+              "Relation": {
+                "name": null,
+                "fields": [],
+                "references": [],
+                "through": "post_tags",
+                "pivot_from": "tag_id",
+                "pivot_to": "post_id",
+                "on_delete": null
+              }
+            }
+          ]
+        }
+      ],
+      "attributes": [
+        {
+          "Map": "tags"
+        }
+      ]
+    },
+    {
+      "name": "Role",
+      "fields": [
+        {
+          "name": "id",
+          "field_type": "Int",
+          "nullable": false,
+          "is_array": false,
+          "attributes": [
+            "Id",
+            {
+              "Default": "AutoIncrement"
+            }
+          ]
+        },
+        {
+          "name": "name",
+          "field_type": "String",
+          "nullable": false,
+          "is_array": false,
+          "attributes": [
+            "Unique"
+          ]
+        },
+        {
+          "name": "users",
+          "field_type": {
+            "Model": "User"
+          },
+          "nullable": false,
+          "is_array": true,
+          "attributes": [
+            {
+              "Relation": {
+                "name": null,
+                "fields": [],
+                "references": [],
+                "through": "user_roles",
+                "pivot_from": "role_id",
+                "pivot_to": "user_id",
+                "on_delete": null
+              }
+            }
+          ]
+        }
+      ],
+      "attributes": [
+        {
+          "Map": "roles"
+        }
+      ]
+    }
+  ]
 }

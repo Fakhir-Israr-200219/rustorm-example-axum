@@ -1,3 +1,4 @@
+#[allow(unused_imports, dead_code)]
 mod entities {
     include!("../.rustorm/generated/entities.rs");
 }
@@ -10,8 +11,8 @@ use axum::{
     Router,
 };
 use entities::{
-    CommentModel, Post, PostCreate, PostModel, User, UserCreate, UserModel, UserProfileModel,
-    UserUpdate,
+    CommentModel, Post, PostCreate, PostModel, Tag, TagCreate, User, UserCreate, UserModel,
+    UserProfileModel, UserUpdate,
 };
 use rustorm::Entity;
 use serde::Serialize;
@@ -108,6 +109,13 @@ impl From<&UserProfileModel> for ProfileResponse {
             website: profile.website.clone(),
         }
     }
+}
+
+#[derive(Serialize)]
+struct TagWithPostsResponse {
+    id: i32,
+    name: String,
+    posts: Vec<PostResponse>,
 }
 
 // ==================== RELATION RESPONSE DTOs ====================
@@ -335,7 +343,53 @@ async fn list_posts_with_user(
 
     Ok(Json(response))
 }
+// GET /tags/with-posts (M2M)
+async fn list_tags_with_posts(
+    State(state): State<AppState>,
+) -> Result<Json<Vec<TagWithPostsResponse>>, StatusCode> {
+    eprintln!("🔍 list_tags_with_posts (M2M)");
+    let tags = Tag::find()
+        .with(Tag::posts)
+        .all(&state.db)
+        .await
+        .map_err(|e| db_err(e, "tags_with_posts"))?;
 
+    eprintln!("✅ Found {} tags with posts", tags.len());
+    let response = tags
+        .iter()
+        .map(|tag| TagWithPostsResponse {
+            id: tag.id,
+            name: tag.name.clone(),
+            posts: tag
+                .posts
+                .iter()
+                .map(|p| PostResponse::from(p.as_ref()))
+                .collect(),
+        })
+        .collect();
+
+    Ok(Json(response))
+}
+async fn list_tags(
+    State(state): State<AppState>,
+) -> Result<Json<Vec<entities::TagModel>>, StatusCode> {
+    let tags = Tag::find()
+        .all(&state.db)
+        .await
+        .map_err(|e| db_err(e, "list_tags"))?;
+    Ok(Json(tags))
+}
+
+async fn create_tag(
+    State(state): State<AppState>,
+    Json(input): Json<TagCreate>,
+) -> Result<(StatusCode, Json<entities::TagModel>), StatusCode> {
+    eprintln!("📥 create_tag input: {:?}", input);
+    let tag = Tag::create(&state.db, input)
+        .await
+        .map_err(|e| db_err(e, "create_tag"))?;
+    Ok((StatusCode::CREATED, Json(tag)))
+}
 // ==================== DATABASE CONFIGURATION ====================
 
 fn get_database_url() -> String {
@@ -387,12 +441,13 @@ async fn main() {
         )
         .route("/users/with-profile", get(list_users_with_profile))
         .route("/posts/with-user", get(list_posts_with_user))
+        .route("/tags/with-posts", get(list_tags_with_posts))
+        .route("/tags", get(list_tags).post(create_tag))
         .with_state(state);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000")
         .await
         .expect("Failed to bind server");
-
     println!("\n🚀 RustORM Axum Integration Test Server");
     println!("📡 Listening on http://localhost:3000\n");
 

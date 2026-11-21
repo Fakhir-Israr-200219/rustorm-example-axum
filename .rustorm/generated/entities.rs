@@ -1,7 +1,7 @@
 use rustorm::{
     entity::{Column, Entity, RelationKey, RelationLoader, SingleRelationLoader},
     field::Field,
-    query::relation::{ManyToMany, ManyToOne, OneToOne, Relation},
+    query::relation::{Relation, ManyToMany, ManyToOne, OneToOne},
 };
 use std::sync::Arc;
 
@@ -12,7 +12,6 @@ pub struct UserModel {
     pub email: String,
     pub place: Option<String>,
     pub age: i32,
-    #[sqlx(rename = "user_bio")]
     pub bio: Option<String>,
     pub created_at: rustorm::DateTime,
     #[sqlx(skip)]
@@ -162,14 +161,14 @@ impl User {
     pub const created_at: Field<Self, rustorm::DateTime> = Field::new("created_at");
 
     #[allow(non_upper_case_globals)]
-    pub const profile: Relation<Self, UserProfile, OneToOne> =
-        Relation::new(Self::id, UserProfile::user_id);
+    pub const profile: Relation<Self, UserProfile, OneToOne> = Relation::new(Self::id, UserProfile::user_id);
 
     #[allow(non_upper_case_globals)]
     pub const posts: Relation<Self, Post> = Relation::new(Self::id, Post::user_id);
 
     #[allow(non_upper_case_globals)]
     pub const comments: Relation<Self, Comment> = Relation::new(Self::id, Comment::author_id);
+
 }
 
 impl RelationKey for UserModel {
@@ -309,6 +308,7 @@ impl UserProfile {
 
     #[allow(non_upper_case_globals)]
     pub const user: Relation<Self, User, ManyToOne> = Relation::new(Self::user_id, User::id);
+
 }
 
 impl RelationKey for UserProfileModel {
@@ -358,14 +358,7 @@ pub struct PostCreate {
 
 impl rustorm::executor::InsertData<Post> for PostCreate {
     fn columns(&self) -> &'static [&'static str] {
-        &[
-            "title",
-            "content",
-            "published",
-            "view_count",
-            "user_id",
-            "created_at",
-        ]
+        &["title", "content", "published", "view_count", "user_id", "created_at"]
     }
 
     fn values(&self) -> Vec<rustorm::value::BindValue> {
@@ -485,6 +478,7 @@ impl Post {
 
     #[allow(non_upper_case_globals)]
     pub const comments: Relation<Self, Comment> = Relation::new(Self::id, Comment::post_id);
+
 }
 
 impl RelationKey for PostModel {
@@ -627,6 +621,7 @@ impl Comment {
 
     #[allow(non_upper_case_globals)]
     pub const author: Relation<Self, User, ManyToOne> = Relation::new(Self::author_id, User::id);
+
 }
 
 impl RelationKey for CommentModel {
@@ -674,7 +669,9 @@ impl rustorm::executor::InsertData<Tag> for TagCreate {
     }
 
     fn values(&self) -> Vec<rustorm::value::BindValue> {
-        vec![rustorm::value::BindValue::String((&self.name).clone())]
+        vec![
+            rustorm::value::BindValue::String((&self.name).clone()),
+        ]
     }
 }
 
@@ -704,7 +701,10 @@ impl rustorm::executor::UpdateData<Tag> for TagUpdate {
 impl Entity for Tag {
     type Model = TagModel;
     const TABLE: &'static str = "tags";
-    const COLUMNS: &'static [Column] = &[Column::new("id"), Column::new("name")];
+    const COLUMNS: &'static [Column] = &[
+        Column::new("id"),
+        Column::new("name"),
+    ];
 }
 
 impl Tag {
@@ -723,6 +723,7 @@ impl Tag {
             Column::new("tag_id"),
             Column::new("post_id"),
         );
+
 }
 
 impl RelationKey for TagModel {
@@ -762,7 +763,9 @@ impl rustorm::executor::InsertData<Role> for RoleCreate {
     }
 
     fn values(&self) -> Vec<rustorm::value::BindValue> {
-        vec![rustorm::value::BindValue::String((&self.name).clone())]
+        vec![
+            rustorm::value::BindValue::String((&self.name).clone()),
+        ]
     }
 }
 
@@ -792,7 +795,10 @@ impl rustorm::executor::UpdateData<Role> for RoleUpdate {
 impl Entity for Role {
     type Model = RoleModel;
     const TABLE: &'static str = "roles";
-    const COLUMNS: &'static [Column] = &[Column::new("id"), Column::new("name")];
+    const COLUMNS: &'static [Column] = &[
+        Column::new("id"),
+        Column::new("name"),
+    ];
 }
 
 impl Role {
@@ -811,6 +817,7 @@ impl Role {
             Column::new("role_id"),
             Column::new("user_id"),
         );
+
 }
 
 impl RelationKey for RoleModel {
@@ -827,3 +834,4 @@ impl RelationLoader<Arc<UserModel>> for RoleModel {
         self.users = related;
     }
 }
+

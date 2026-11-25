@@ -10,7 +10,6 @@ CREATE TABLE IF NOT EXISTS "users" (
         "id" SERIAL NOT NULL,
     "name" TEXT NOT NULL,
     "email" TEXT NOT NULL UNIQUE,
-    "place" TEXT,
     "age" INTEGER NOT NULL,
     "user_bio" TEXT,
     "created_at" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -19,9 +18,9 @@ CREATE TABLE IF NOT EXISTS "users" (
 
 CREATE TABLE IF NOT EXISTS "user_profiles" (
         "id" SERIAL NOT NULL,
-    "user_id" INTEGER NOT NULL UNIQUE,
     "avatar" TEXT,
     "website" TEXT,
+    "user_id" INTEGER NOT NULL UNIQUE,
     PRIMARY KEY ("id"),
     FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON DELETE CASCADE
 );
@@ -46,7 +45,7 @@ CREATE TABLE IF NOT EXISTS "comments" (
     "created_at" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY ("id"),
     FOREIGN KEY ("post_id") REFERENCES "posts" ("id") ON DELETE CASCADE,
-    FOREIGN KEY ("author_id") REFERENCES "users" ("id")
+    FOREIGN KEY ("author_id") REFERENCES "users" ("id") ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS "tags" (
@@ -55,13 +54,13 @@ CREATE TABLE IF NOT EXISTS "tags" (
     PRIMARY KEY ("id")
 );
 
-CREATE TABLE IF NOT EXISTS "roles" (
+CREATE TABLE IF NOT EXISTS "post_tags" (
         "id" SERIAL NOT NULL,
-    "name" TEXT NOT NULL UNIQUE,
-    PRIMARY KEY ("id")
+    "post_id" INTEGER NOT NULL,
+    "tag_id" INTEGER NOT NULL,
+    PRIMARY KEY ("id"),
+    FOREIGN KEY ("post_id") REFERENCES "posts" ("id") ON DELETE CASCADE,
+    FOREIGN KEY ("tag_id") REFERENCES "tags" ("id") ON DELETE CASCADE
 );
 
-CREATE INDEX "users_email_idx" ON "users" ("email");
-CREATE INDEX "users_name_age_idx" ON "users" ("name", "age");
-CREATE INDEX "posts_user_id_idx" ON "posts" ("user_id");
-CREATE INDEX "comments_post_id_idx" ON "comments" ("post_id");
+CREATE UNIQUE INDEX "post_tags_post_id_tag_id_idx" ON "post_tags" ("post_id", "tag_id");

@@ -32,13 +32,6 @@
           ]
         },
         {
-          "name": "place",
-          "field_type": "String",
-          "nullable": true,
-          "is_array": false,
-          "attributes": []
-        },
-        {
           "name": "age",
           "field_type": "Int",
           "nullable": false,
@@ -71,15 +64,6 @@
           ]
         },
         {
-          "name": "posts",
-          "field_type": {
-            "Model": "Post"
-          },
-          "nullable": false,
-          "is_array": true,
-          "attributes": []
-        },
-        {
           "name": "profile",
           "field_type": {
             "Model": "UserProfile"
@@ -89,31 +73,16 @@
           "attributes": []
         },
         {
-          "name": "comments",
+          "name": "posts",
           "field_type": {
-            "Model": "Comment"
+            "Model": "Post"
           },
           "nullable": false,
           "is_array": true,
           "attributes": []
         }
       ],
-      "attributes": [
-        {
-          "Map": "users"
-        },
-        {
-          "Index": [
-            "email"
-          ]
-        },
-        {
-          "Index": [
-            "name",
-            "age"
-          ]
-        }
-      ]
+      "attributes": []
     },
     {
       "name": "UserProfile",
@@ -131,15 +100,6 @@
           ]
         },
         {
-          "name": "user_id",
-          "field_type": "Int",
-          "nullable": false,
-          "is_array": false,
-          "attributes": [
-            "Unique"
-          ]
-        },
-        {
           "name": "avatar",
           "field_type": "String",
           "nullable": true,
@@ -154,6 +114,15 @@
           "attributes": []
         },
         {
+          "name": "userId",
+          "field_type": "Int",
+          "nullable": false,
+          "is_array": false,
+          "attributes": [
+            "Unique"
+          ]
+        },
+        {
           "name": "user",
           "field_type": {
             "Model": "User"
@@ -165,7 +134,7 @@
               "Relation": {
                 "name": null,
                 "fields": [
-                  "user_id"
+                  "userId"
                 ],
                 "references": [
                   "id"
@@ -179,11 +148,7 @@
           ]
         }
       ],
-      "attributes": [
-        {
-          "Map": "user_profiles"
-        }
-      ]
+      "attributes": []
     },
     {
       "name": "Post",
@@ -244,11 +209,15 @@
           ]
         },
         {
-          "name": "user_id",
+          "name": "userId",
           "field_type": "Int",
           "nullable": false,
           "is_array": false,
-          "attributes": []
+          "attributes": [
+            {
+              "Map": "user_id"
+            }
+          ]
         },
         {
           "name": "createdAt",
@@ -276,7 +245,7 @@
               "Relation": {
                 "name": null,
                 "fields": [
-                  "user_id"
+                  "userId"
                 ],
                 "references": [
                   "id"
@@ -297,18 +266,30 @@
           "nullable": false,
           "is_array": true,
           "attributes": []
-        }
-      ],
-      "attributes": [
-        {
-          "Map": "posts"
         },
         {
-          "Index": [
-            "user_id"
+          "name": "tags",
+          "field_type": {
+            "Model": "Tag"
+          },
+          "nullable": false,
+          "is_array": true,
+          "attributes": [
+            {
+              "Relation": {
+                "name": null,
+                "fields": [],
+                "references": [],
+                "through": "post_tags",
+                "pivot_from": "post_id",
+                "pivot_to": "tag_id",
+                "on_delete": null
+              }
+            }
           ]
         }
-      ]
+      ],
+      "attributes": []
     },
     {
       "name": "Comment",
@@ -333,18 +314,26 @@
           "attributes": []
         },
         {
-          "name": "post_id",
+          "name": "postId",
           "field_type": "Int",
           "nullable": false,
           "is_array": false,
-          "attributes": []
+          "attributes": [
+            {
+              "Map": "post_id"
+            }
+          ]
         },
         {
-          "name": "author_id",
+          "name": "authorId",
           "field_type": "Int",
           "nullable": false,
           "is_array": false,
-          "attributes": []
+          "attributes": [
+            {
+              "Map": "author_id"
+            }
+          ]
         },
         {
           "name": "createdAt",
@@ -372,7 +361,7 @@
               "Relation": {
                 "name": null,
                 "fields": [
-                  "post_id"
+                  "postId"
                 ],
                 "references": [
                   "id"
@@ -397,7 +386,7 @@
               "Relation": {
                 "name": null,
                 "fields": [
-                  "author_id"
+                  "authorId"
                 ],
                 "references": [
                   "id"
@@ -405,22 +394,13 @@
                 "through": null,
                 "pivot_from": null,
                 "pivot_to": null,
-                "on_delete": null
+                "on_delete": "Cascade"
               }
             }
           ]
         }
       ],
-      "attributes": [
-        {
-          "Map": "comments"
-        },
-        {
-          "Index": [
-            "post_id"
-          ]
-        }
-      ]
+      "attributes": []
     },
     {
       "name": "Tag",
@@ -468,14 +448,10 @@
           ]
         }
       ],
-      "attributes": [
-        {
-          "Map": "tags"
-        }
-      ]
+      "attributes": []
     },
     {
-      "name": "Role",
+      "name": "PostTag",
       "fields": [
         {
           "name": "id",
@@ -490,31 +466,73 @@
           ]
         },
         {
-          "name": "name",
-          "field_type": "String",
+          "name": "postId",
+          "field_type": "Int",
           "nullable": false,
           "is_array": false,
           "attributes": [
-            "Unique"
+            {
+              "Map": "post_id"
+            }
           ]
         },
         {
-          "name": "users",
+          "name": "tagId",
+          "field_type": "Int",
+          "nullable": false,
+          "is_array": false,
+          "attributes": [
+            {
+              "Map": "tag_id"
+            }
+          ]
+        },
+        {
+          "name": "post",
           "field_type": {
-            "Model": "User"
+            "Model": "Post"
           },
           "nullable": false,
-          "is_array": true,
+          "is_array": false,
           "attributes": [
             {
               "Relation": {
                 "name": null,
-                "fields": [],
-                "references": [],
-                "through": "user_roles",
-                "pivot_from": "role_id",
-                "pivot_to": "user_id",
-                "on_delete": null
+                "fields": [
+                  "postId"
+                ],
+                "references": [
+                  "id"
+                ],
+                "through": null,
+                "pivot_from": null,
+                "pivot_to": null,
+                "on_delete": "Cascade"
+              }
+            }
+          ]
+        },
+        {
+          "name": "tag",
+          "field_type": {
+            "Model": "Tag"
+          },
+          "nullable": false,
+          "is_array": false,
+          "attributes": [
+            {
+              "Relation": {
+                "name": null,
+                "fields": [
+                  "tagId"
+                ],
+                "references": [
+                  "id"
+                ],
+                "through": null,
+                "pivot_from": null,
+                "pivot_to": null,
+                "on_delete": "Cascade"
               }
             }
           ]
@@ -522,7 +540,13 @@
       ],
       "attributes": [
         {
-          "Map": "roles"
+          "Unique": [
+            "postId",
+            "tagId"
+          ]
+        },
+        {
+          "Map": "post_tags"
         }
       ]
     }

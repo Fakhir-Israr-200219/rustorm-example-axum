@@ -1,31 +1,24 @@
+// RustORM E2E Test Schema
+// Covers: CRUD, 1:1, 1:N, N:1, M2M, @map, @default, unique, nested loading
+
 model User {
     id        Int       @id @default(autoincrement())
     name      String
     email     String    @unique
-    place     String?
     age       Int
     bio       String?   @map("user_bio")
     createdAt DateTime  @default(now()) @map("created_at")
 
-    posts     Post[]
     profile   UserProfile?
-    comments  Comment[]
-    //roles     Role[]    @relation(through: "user_roles", pivotFrom: "user_id", pivotTo: "role_id")
-
-    @@map("users")
-    @@index([email])
-    @@index([name, age])
+    posts     Post[]
 }
 
 model UserProfile {
     id      Int     @id @default(autoincrement())
-    user_id Int     @unique
     avatar  String?
     website String?
-
-    user    User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
-
-    @@map("user_profiles")
+    userId  Int     @unique
+    user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)  // ← ADD
 }
 
 model Post {
@@ -34,43 +27,41 @@ model Post {
     content   String?
     published Boolean   @default(false)
     viewCount Int       @default(0) @map("view_count")
-    user_id   Int
+    userId    Int       @map("user_id")
     createdAt DateTime  @default(now()) @map("created_at")
 
-    user      User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+    user      User      @relation(fields: [userId], references: [id], onDelete: Cascade) 
     comments  Comment[]
-    //tags      Tag[]     @relation(through: "post_tags", pivotFrom: "post_id", pivotTo: "tag_id")
-
-    @@map("posts")
-    @@index([user_id])
+    tags      Tag[]     @relation(through: "post_tags", pivotFrom: "post_id", pivotTo: "tag_id")
 }
 
 model Comment {
     id        Int       @id @default(autoincrement())
     body      String
-    post_id   Int
-    author_id Int
+    postId    Int       @map("post_id")
+    authorId  Int       @map("author_id")
     createdAt DateTime  @default(now()) @map("created_at")
 
-    post      Post      @relation(fields: [post_id], references: [id], onDelete: Cascade)
-    author    User      @relation(fields: [author_id], references: [id])
-
-    @@map("comments")
-    @@index([post_id])
+    post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)   // ← ADD
+    author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade) // ← ADD
 }
 
 model Tag {
-    id    Int    @id @default(autoincrement())
-    name  String @unique
-    posts Post[] @relation(through: "post_tags", pivotFrom: "tag_id", pivotTo: "post_id")
-
-    @@map("tags")
+    id    Int     @id @default(autoincrement())
+    name  String  @unique
+    posts Post[]  @relation(through: "post_tags", pivotFrom: "tag_id", pivotTo: "post_id")
 }
 
-model Role {
-    id    Int    @id @default(autoincrement())
-    name  String @unique
-    users User[] @relation(through: "user_roles", pivotFrom: "role_id", pivotTo: "user_id")
+// ✅ PIVOT TABLE — Explicit model so CLI generates migration
+// ✅ PIVOT TABLE — Simple id + unique constraint instead of composite @@id
+model PostTag {
+    id     Int @id @default(autoincrement())
+    postId Int @map("post_id")
+    tagId  Int @map("tag_id")
 
-    @@map("roles")
+    post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+    tag    Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+    @@unique([postId, tagId])
+    @@map("post_tags")
 }

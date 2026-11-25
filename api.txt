@@ -1,0 +1,57 @@
+# ========== PHASE 0: SEED DATA (via API) ==========
+Write-Host "🌱 Seeding test data via /seed endpoint..." -ForegroundColor Green
+$seed = Invoke-RestMethod -Uri http://localhost:3000/seed | ConvertTo-Json -Depth 3
+Write-Host $seed
+Write-Host "`n✅ Seed complete!`n" -ForegroundColor Green
+
+# ========== PHASE 1: BASIC CRUD TESTS ==========
+Write-Host "--- #1 GET /users ---" -ForegroundColor Blue
+Invoke-RestMethod -Uri http://localhost:3000/users | ConvertTo-Json -Depth 3
+
+Write-Host "`n--- #3 GET /users/1 ---" -ForegroundColor Blue
+Invoke-RestMethod -Uri http://localhost:3000/users/1 | ConvertTo-Json -Depth 3
+
+Write-Host "`n--- #4 PUT /users/1 ---" -ForegroundColor Blue
+Invoke-RestMethod -Uri http://localhost:3000/users/1 -Method PUT -ContentType "application/json" -Body '{"name":"Ali Updated","bio":"Senior Rust dev"}' | ConvertTo-Json -Depth 3
+
+Write-Host "`n--- #6 GET /posts ---" -ForegroundColor Blue
+Invoke-RestMethod -Uri http://localhost:3000/posts | ConvertTo-Json -Depth 3
+
+# ========== PHASE 2: EAGER LOADING TESTS ==========
+Write-Host "`n--- #8 GET /users/with-posts (1:N) ---" -ForegroundColor Blue
+Invoke-RestMethod -Uri http://localhost:3000/users/with-posts | ConvertTo-Json -Depth 5
+
+Write-Host "`n--- #9 GET /users/with-profile (1:1) ---" -ForegroundColor Blue
+Invoke-RestMethod -Uri http://localhost:3000/users/with-profile | ConvertTo-Json -Depth 5
+
+Write-Host "`n--- #10 GET /posts/with-user (N:1) ---" -ForegroundColor Blue
+Invoke-RestMethod -Uri http://localhost:3000/posts/with-user | ConvertTo-Json -Depth 5
+
+Write-Host "`n--- #11 GET /users/with-posts-comments (Nested) ---" -ForegroundColor Blue
+Invoke-RestMethod -Uri http://localhost:3000/users/with-posts-comments | ConvertTo-Json -Depth 7
+
+# ========== PHASE 3: M2M TESTS ==========
+Write-Host "`n--- #13 GET /tags ---" -ForegroundColor Blue
+Invoke-RestMethod -Uri http://localhost:3000/tags | ConvertTo-Json -Depth 3
+
+Write-Host "`n--- #14 GET /tags/with-posts (M2M) ---" -ForegroundColor Blue
+Invoke-RestMethod -Uri http://localhost:3000/tags/with-posts | ConvertTo-Json -Depth 5
+
+# ========== PHASE 4: ERROR HANDLING TESTS ==========
+Write-Host "`n--- #15 GET /users/9999 (404) ---" -ForegroundColor Blue
+try { Invoke-RestMethod -Uri http://localhost:3000/users/9999 } catch { Write-Host "Status: $($_.Exception.Response.StatusCode)" -ForegroundColor Green }
+
+Write-Host "`n--- #16 DELETE /users/9999 (404) ---" -ForegroundColor Blue
+try { Invoke-RestMethod -Uri http://localhost:3000/users/9999 -Method DELETE } catch { Write-Host "Status: $($_.Exception.Response.StatusCode)" -ForegroundColor Green }
+
+Write-Host "`n--- #17 POST /users invalid body (422) ---" -ForegroundColor Blue
+try { Invoke-RestMethod -Uri http://localhost:3000/users -Method POST -ContentType "application/json" -Body '{"invalid":true}' } catch { Write-Host "Status: $($_.Exception.Response.StatusCode)" -ForegroundColor Green }
+
+Write-Host "`n--- #18 POST /users duplicate email (409) ---" -ForegroundColor Blue
+try { Invoke-RestMethod -Uri http://localhost:3000/users -Method POST -ContentType "application/json" -Body '{"name":"Dup","email":"ali@test.com","age":20}' } catch { Write-Host "Status: $($_.Exception.Response.StatusCode)" -ForegroundColor Green }
+
+# ========== PHASE 5: CASCADE DELETE TEST (LAST!) ==========
+Write-Host "`n--- #5 DELETE /users/1 (Cascade) ---" -ForegroundColor Blue
+try { Invoke-RestMethod -Uri http://localhost:3000/users/1 -Method DELETE; Write-Host "✅ 204 No Content" -ForegroundColor Green } catch { Write-Host "❌ Status: $($_.Exception.Response.StatusCode)" -ForegroundColor Red }
+
+Write-Host "`n🏁 ALL 21 TESTS COMPLETE!" -ForegroundColor Green

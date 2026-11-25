@@ -1,1 +1,1 @@
-ALTER TABLE "users" ADD COLUMN "agefather" INTEGER NOT NULL;
+-- New table detected: post_tags

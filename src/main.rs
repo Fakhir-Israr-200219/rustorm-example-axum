@@ -16,7 +16,8 @@ use entities::{
 };
 use rustorm::Entity;
 use serde::Serialize;
-use sqlx::PgPool;
+use sqlx::{PgPool, types::chrono};
+use serde_json;
 
 // ==================== APP STATE ====================
 
@@ -26,15 +27,14 @@ struct AppState {
 }
 
 // ==================== RESPONSE DTOs ====================
-
 #[derive(Serialize)]
 struct UserResponse {
     id: i32,
     name: String,
     email: String,
-    place: Option<String>,
     age: i32,
-    bio: Option<String>,
+    bio: Option<String>,           // ✅ @map("user_bio") handles DB column
+    created_at: rustorm::DateTime, // ✅ Model mein hai, response mein bhi dikhao
 }
 
 impl From<&UserModel> for UserResponse {
@@ -43,9 +43,9 @@ impl From<&UserModel> for UserResponse {
             id: user.id,
             name: user.name.clone(),
             email: user.email.clone(),
-            place: user.place.clone(),
             age: user.age,
             bio: user.bio.clone(),
+            created_at: user.created_at,
         }
     }
 }
@@ -58,6 +58,7 @@ struct PostResponse {
     published: bool,
     view_count: i32,
     user_id: i32,
+    created_at: rustorm::DateTime, // ✅ Add this
 }
 
 impl From<&PostModel> for PostResponse {
@@ -69,6 +70,7 @@ impl From<&PostModel> for PostResponse {
             published: post.published,
             view_count: post.view_count,
             user_id: post.user_id,
+            created_at: post.created_at, // ✅ Add this
         }
     }
 }
@@ -156,9 +158,21 @@ struct PostWithUserResponse {
 }
 
 // ==================== HELPER ====================
+// Naya — Unique violation detect karke 409 return karo
+fn db_err(e: impl std::fmt::Debug + std::fmt::Display, context: &str) -> StatusCode {
+    let err_str = format!("{e:?}");
+    eprintln!("❌ [{context}] DB Error: {err_str}");
 
-fn db_err(e: impl std::fmt::Debug, context: &str) -> StatusCode {
-    eprintln!("❌ [{context}] DB Error: {e:?}");
+    // PostgreSQL unique violation code: 23505
+    if err_str.contains("23505") || err_str.contains("unique") || err_str.contains("duplicate") {
+        return StatusCode::CONFLICT; // 409
+    }
+
+    // Foreign key violation code: 23503
+    if err_str.contains("23503") || err_str.contains("foreign key") {
+        return StatusCode::BAD_REQUEST; // 400
+    }
+
     StatusCode::INTERNAL_SERVER_ERROR
 }
 
@@ -348,13 +362,16 @@ async fn list_tags_with_posts(
     State(state): State<AppState>,
 ) -> Result<Json<Vec<TagWithPostsResponse>>, StatusCode> {
     eprintln!("🔍 list_tags_with_posts (M2M)");
-    let tags = Tag::find()
-        .with(Tag::posts)
-        .all(&state.db)
-        .await
-        .map_err(|e| db_err(e, "tags_with_posts"))?;
 
-    eprintln!("✅ Found {} tags with posts", tags.len());
+    let result = Tag::find().with(Tag::posts).all(&state.db).await;
+
+    match &result {
+        Ok(tags) => eprintln!("✅ Query OK: {} tags", tags.len()),
+        Err(e) => eprintln!("❌ M2M ERROR: {:?}", e),
+    }
+
+    let tags = result.map_err(|e| db_err(e, "tags_with_posts"))?;
+
     let response = tags
         .iter()
         .map(|tag| TagWithPostsResponse {
@@ -408,6 +425,107 @@ fn get_database_url() -> String {
 
 // ==================== MAIN ====================
 
+// ==================== SEED ENDPOINT ====================
+
+async fn seed_data(
+    State(state): State<AppState>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    eprintln!("🌱 Seeding test data...");
+
+    // 1. Create User (unique email with timestamp)
+    let user = User::create(&state.db, UserCreate {
+        name: "Ali Khan".to_string(),
+        email: format!("ali_{}@test.com", chrono::Utc::now().timestamp()),
+        age: 28,
+        bio: Some("Rust developer".to_string()),
+    })
+    .await
+    .map_err(|e| db_err(e, "seed_user"))?;
+
+    // 2. Create Posts
+    let post1 = Post::create(&state.db, PostCreate {
+        title: "Rust ORM Guide".to_string(),
+        content: Some("Complete guide".to_string()),
+        published: true,
+        view_count: 150,
+        user_id: user.id,
+    })
+    .await
+    .map_err(|e| db_err(e, "seed_post1"))?;
+
+    let post2 = Post::create(&state.db, PostCreate {
+        title: "Axum Integration".to_string(),
+        content: Some("How to integrate".to_string()),
+        published: true,
+        view_count: 89,
+        user_id: user.id,
+    })
+    .await
+    .map_err(|e| db_err(e, "seed_post2"))?;
+
+    // 3. Create Tags (idempotent — skip if exists)
+    let tag1 = match Tag::create(&state.db, TagCreate { name: "Rust".to_string() }).await {
+        Ok(t) => t,
+        Err(_) => {
+            // Already exists — fetch existing
+            Tag::find()
+                .where_(entities::Tag::name.eq("Rust"))
+                .all(&state.db)
+                .await
+                .map_err(|e| db_err(e, "seed_tag1_fetch"))?
+                .into_iter()
+                .next()
+                .ok_or_else(|| {
+                    eprintln!("❌ Tag 'Rust' not found after create failure");
+                    StatusCode::INTERNAL_SERVER_ERROR
+                })?
+        }
+    };
+
+    let tag2 = match Tag::create(&state.db, TagCreate { name: "ORM".to_string() }).await {
+        Ok(t) => t,
+        Err(_) => {
+            Tag::find()
+                .where_(entities::Tag::name.eq("ORM"))
+                .all(&state.db)
+                .await
+                .map_err(|e| db_err(e, "seed_tag2_fetch"))?
+                .into_iter()
+                .next()
+                .ok_or_else(|| {
+                    eprintln!("❌ Tag 'ORM' not found after create failure");
+                    StatusCode::INTERNAL_SERVER_ERROR
+                })?
+        }
+    };
+
+    // 4. Insert Pivot Data (ignore duplicates)
+    sqlx::query(
+        "INSERT INTO post_tags (post_id, tag_id) VALUES ($1,$2),($3,$4),($5,$6) ON CONFLICT DO NOTHING"
+    )
+    .bind(post1.id).bind(tag1.id)
+    .bind(post1.id).bind(tag2.id)
+    .bind(post2.id).bind(tag1.id)
+    .execute(&state.db)
+    .await
+    .map_err(|e| db_err(e, "seed_pivot"))?;
+
+    eprintln!("✅ Seed complete!");
+
+    Ok(Json(serde_json::json!({
+        "user": { "id": user.id, "name": &user.name, "email": &user.email },
+        "posts": [
+            { "id": post1.id, "title": &post1.title },
+            { "id": post2.id, "title": &post2.title }
+        ],
+        "tags": [
+            { "id": tag1.id, "name": &tag1.name },
+            { "id": tag2.id, "name": &tag2.name }
+        ],
+        "pivot_rows": 3
+    })))
+}
+
 #[tokio::main]
 async fn main() {
     let db_url = get_database_url();
@@ -443,6 +561,7 @@ async fn main() {
         .route("/posts/with-user", get(list_posts_with_user))
         .route("/tags/with-posts", get(list_tags_with_posts))
         .route("/tags", get(list_tags).post(create_tag))
+        .route("/seed", get(seed_data))
         .with_state(state);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000")

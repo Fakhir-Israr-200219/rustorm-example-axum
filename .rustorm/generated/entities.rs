@@ -10,19 +10,14 @@ pub struct UserModel {
     pub id: i32,
     pub name: String,
     pub email: String,
-    pub place: Option<String>,
     pub age: i32,
+    #[sqlx(rename = "user_bio")]
     pub bio: Option<String>,
     pub created_at: rustorm::DateTime,
     #[sqlx(skip)]
-    #[serde(skip)]
-    pub posts: Vec<PostModel>,
-    #[sqlx(skip)]
-    #[serde(skip)]
     pub profile: Option<Arc<UserProfileModel>>,
     #[sqlx(skip)]
-    #[serde(skip)]
-    pub comments: Vec<CommentModel>,
+    pub posts: Vec<PostModel>,
 }
 
 pub struct User;
@@ -31,31 +26,24 @@ pub struct User;
 pub struct UserCreate {
     pub name: String,
     pub email: String,
-    pub place: Option<String>,
     pub age: i32,
     pub bio: Option<String>,
-    pub created_at: rustorm::DateTime,
 }
 
 impl rustorm::executor::InsertData<User> for UserCreate {
     fn columns(&self) -> &'static [&'static str] {
-        &["name", "email", "place", "age", "user_bio", "created_at"]
+        &["name", "email", "age", "user_bio"]
     }
 
     fn values(&self) -> Vec<rustorm::value::BindValue> {
         vec![
             rustorm::value::BindValue::String((&self.name).clone()),
             rustorm::value::BindValue::String((&self.email).clone()),
-            match &self.place {
-                Some(value) => rustorm::value::BindValue::String((value).clone()),
-                None => rustorm::value::BindValue::Null,
-            },
             rustorm::value::BindValue::I64(i64::from(*(&self.age))),
             match &self.bio {
                 Some(value) => rustorm::value::BindValue::String((value).clone()),
                 None => rustorm::value::BindValue::Null,
             },
-            rustorm::value::BindValue::DateTime((&self.created_at).into_inner()),
         ]
     }
 }
@@ -64,7 +52,6 @@ impl rustorm::executor::InsertData<User> for UserCreate {
 pub struct UserUpdate {
     pub name: Option<String>,
     pub email: Option<String>,
-    pub place: Option<Option<String>>,
     pub age: Option<i32>,
     pub bio: Option<Option<String>>,
     pub created_at: Option<rustorm::DateTime>,
@@ -78,9 +65,6 @@ impl rustorm::executor::UpdateData<User> for UserUpdate {
         }
         if self.email.is_some() {
             columns.push("email");
-        }
-        if self.place.is_some() {
-            columns.push("place");
         }
         if self.age.is_some() {
             columns.push("age");
@@ -101,12 +85,6 @@ impl rustorm::executor::UpdateData<User> for UserUpdate {
         }
         if let Some(value) = &self.email {
             values.push(rustorm::value::BindValue::String((value).clone()));
-        }
-        if let Some(value) = &self.place {
-            match value {
-                Some(value) => values.push(rustorm::value::BindValue::String((value).clone())),
-                None => values.push(rustorm::value::BindValue::Null),
-            }
         }
         if let Some(value) = &self.age {
             values.push(rustorm::value::BindValue::I64(i64::from(*(value))));
@@ -131,7 +109,6 @@ impl Entity for User {
         Column::new("id"),
         Column::new("name"),
         Column::new("email"),
-        Column::new("place"),
         Column::new("age"),
         Column::new("user_bio"),
         Column::new("created_at"),
@@ -149,9 +126,6 @@ impl User {
     pub const email: Field<Self, String> = Field::new("email");
 
     #[allow(non_upper_case_globals)]
-    pub const place: Field<Self, Option<String>> = Field::new("place");
-
-    #[allow(non_upper_case_globals)]
     pub const age: Field<Self, i32> = Field::new("age");
 
     #[allow(non_upper_case_globals)]
@@ -165,9 +139,6 @@ impl User {
 
     #[allow(non_upper_case_globals)]
     pub const posts: Relation<Self, Post> = Relation::new(Self::id, Post::user_id);
-
-    #[allow(non_upper_case_globals)]
-    pub const comments: Relation<Self, Comment> = Relation::new(Self::id, Comment::author_id);
 
 }
 
@@ -193,18 +164,12 @@ impl RelationLoader<PostModel> for UserModel {
     }
 }
 
-impl RelationLoader<CommentModel> for UserModel {
-    fn load_relation(&mut self, related: Vec<CommentModel>) {
-        self.comments = related;
-    }
-}
-
 #[derive(Debug, rustorm::serde::Serialize, rustorm::serde::Deserialize, sqlx::FromRow)]
 pub struct UserProfileModel {
     pub id: i32,
-    pub user_id: i32,
     pub avatar: Option<String>,
     pub website: Option<String>,
+    pub user_id: i32,
     #[sqlx(skip)]
     #[serde(skip)]
     pub user: Option<Arc<UserModel>>,
@@ -214,19 +179,18 @@ pub struct UserProfile;
 
 #[derive(Debug, rustorm::serde::Serialize, rustorm::serde::Deserialize)]
 pub struct UserProfileCreate {
-    pub user_id: i32,
     pub avatar: Option<String>,
     pub website: Option<String>,
+    pub user_id: i32,
 }
 
 impl rustorm::executor::InsertData<UserProfile> for UserProfileCreate {
     fn columns(&self) -> &'static [&'static str] {
-        &["user_id", "avatar", "website"]
+        &["avatar", "website", "user_id"]
     }
 
     fn values(&self) -> Vec<rustorm::value::BindValue> {
         vec![
-            rustorm::value::BindValue::I64(i64::from(*(&self.user_id))),
             match &self.avatar {
                 Some(value) => rustorm::value::BindValue::String((value).clone()),
                 None => rustorm::value::BindValue::Null,
@@ -235,37 +199,35 @@ impl rustorm::executor::InsertData<UserProfile> for UserProfileCreate {
                 Some(value) => rustorm::value::BindValue::String((value).clone()),
                 None => rustorm::value::BindValue::Null,
             },
+            rustorm::value::BindValue::I64(i64::from(*(&self.user_id))),
         ]
     }
 }
 
 #[derive(Debug, rustorm::serde::Serialize, rustorm::serde::Deserialize)]
 pub struct UserProfileUpdate {
-    pub user_id: Option<i32>,
     pub avatar: Option<Option<String>>,
     pub website: Option<Option<String>>,
+    pub user_id: Option<i32>,
 }
 
 impl rustorm::executor::UpdateData<UserProfile> for UserProfileUpdate {
     fn columns(&self) -> Vec<&'static str> {
         let mut columns = Vec::new();
-        if self.user_id.is_some() {
-            columns.push("user_id");
-        }
         if self.avatar.is_some() {
             columns.push("avatar");
         }
         if self.website.is_some() {
             columns.push("website");
         }
+        if self.user_id.is_some() {
+            columns.push("user_id");
+        }
         columns
     }
 
     fn values(&self) -> Vec<rustorm::value::BindValue> {
         let mut values = Vec::new();
-        if let Some(value) = &self.user_id {
-            values.push(rustorm::value::BindValue::I64(i64::from(*(value))));
-        }
         if let Some(value) = &self.avatar {
             match value {
                 Some(value) => values.push(rustorm::value::BindValue::String((value).clone())),
@@ -278,6 +240,9 @@ impl rustorm::executor::UpdateData<UserProfile> for UserProfileUpdate {
                 None => values.push(rustorm::value::BindValue::Null),
             }
         }
+        if let Some(value) = &self.user_id {
+            values.push(rustorm::value::BindValue::I64(i64::from(*(value))));
+        }
         values
     }
 }
@@ -287,9 +252,9 @@ impl Entity for UserProfile {
     const TABLE: &'static str = "user_profiles";
     const COLUMNS: &'static [Column] = &[
         Column::new("id"),
-        Column::new("user_id"),
         Column::new("avatar"),
         Column::new("website"),
+        Column::new("user_id"),
     ];
 }
 
@@ -298,13 +263,13 @@ impl UserProfile {
     pub const id: Field<Self, i32> = Field::new("id");
 
     #[allow(non_upper_case_globals)]
-    pub const user_id: Field<Self, i32> = Field::new("user_id");
-
-    #[allow(non_upper_case_globals)]
     pub const avatar: Field<Self, Option<String>> = Field::new("avatar");
 
     #[allow(non_upper_case_globals)]
     pub const website: Field<Self, Option<String>> = Field::new("website");
+
+    #[allow(non_upper_case_globals)]
+    pub const user_id: Field<Self, i32> = Field::new("user_id");
 
     #[allow(non_upper_case_globals)]
     pub const user: Relation<Self, User, ManyToOne> = Relation::new(Self::user_id, User::id);
@@ -340,8 +305,9 @@ pub struct PostModel {
     #[serde(skip)]
     pub user: Option<Arc<UserModel>>,
     #[sqlx(skip)]
-    #[serde(skip)]
     pub comments: Vec<CommentModel>,
+    #[sqlx(skip)]
+    pub tags: Vec<Arc<TagModel>>,
 }
 
 pub struct Post;
@@ -353,12 +319,11 @@ pub struct PostCreate {
     pub published: bool,
     pub view_count: i32,
     pub user_id: i32,
-    pub created_at: rustorm::DateTime,
 }
 
 impl rustorm::executor::InsertData<Post> for PostCreate {
     fn columns(&self) -> &'static [&'static str] {
-        &["title", "content", "published", "view_count", "user_id", "created_at"]
+        &["title", "content", "published", "view_count", "user_id"]
     }
 
     fn values(&self) -> Vec<rustorm::value::BindValue> {
@@ -371,7 +336,6 @@ impl rustorm::executor::InsertData<Post> for PostCreate {
             rustorm::value::BindValue::Boolean(*(&self.published)),
             rustorm::value::BindValue::I64(i64::from(*(&self.view_count))),
             rustorm::value::BindValue::I64(i64::from(*(&self.user_id))),
-            rustorm::value::BindValue::DateTime((&self.created_at).into_inner()),
         ]
     }
 }
@@ -477,6 +441,16 @@ impl Post {
     pub const user: Relation<Self, User, ManyToOne> = Relation::new(Self::user_id, User::id);
 
     #[allow(non_upper_case_globals)]
+    pub const tags: Relation<Self, Tag, ManyToMany> =
+        Relation::<Self, Tag, ManyToMany>::many_to_many(
+            Self::id,
+            Tag::id,
+            "post_tags",
+            Column::new("post_id"),
+            Column::new("tag_id"),
+        );
+
+    #[allow(non_upper_case_globals)]
     pub const comments: Relation<Self, Comment> = Relation::new(Self::id, Comment::post_id);
 
 }
@@ -498,6 +472,12 @@ impl SingleRelationLoader<Arc<UserModel>> for PostModel {
     }
 }
 
+impl RelationLoader<Arc<TagModel>> for PostModel {
+    fn load_relation(&mut self, related: Vec<Arc<TagModel>>) {
+        self.tags = related;
+    }
+}
+
 impl RelationLoader<CommentModel> for PostModel {
     fn load_relation(&mut self, related: Vec<CommentModel>) {
         self.comments = related;
@@ -515,7 +495,6 @@ pub struct CommentModel {
     #[serde(skip)]
     pub post: Option<Arc<PostModel>>,
     #[sqlx(skip)]
-    #[serde(skip)]
     pub author: Option<Arc<UserModel>>,
 }
 
@@ -526,12 +505,11 @@ pub struct CommentCreate {
     pub body: String,
     pub post_id: i32,
     pub author_id: i32,
-    pub created_at: rustorm::DateTime,
 }
 
 impl rustorm::executor::InsertData<Comment> for CommentCreate {
     fn columns(&self) -> &'static [&'static str] {
-        &["body", "post_id", "author_id", "created_at"]
+        &["body", "post_id", "author_id"]
     }
 
     fn values(&self) -> Vec<rustorm::value::BindValue> {
@@ -539,7 +517,6 @@ impl rustorm::executor::InsertData<Comment> for CommentCreate {
             rustorm::value::BindValue::String((&self.body).clone()),
             rustorm::value::BindValue::I64(i64::from(*(&self.post_id))),
             rustorm::value::BindValue::I64(i64::from(*(&self.author_id))),
-            rustorm::value::BindValue::DateTime((&self.created_at).into_inner()),
         ]
     }
 }
@@ -652,7 +629,6 @@ pub struct TagModel {
     pub id: i32,
     pub name: String,
     #[sqlx(skip)]
-    #[serde(skip)]
     pub posts: Vec<Arc<PostModel>>,
 }
 
@@ -742,96 +718,115 @@ impl RelationLoader<Arc<PostModel>> for TagModel {
 }
 
 #[derive(Debug, rustorm::serde::Serialize, rustorm::serde::Deserialize, sqlx::FromRow)]
-pub struct RoleModel {
+pub struct PostTagModel {
     pub id: i32,
-    pub name: String,
+    pub post_id: i32,
+    pub tag_id: i32,
     #[sqlx(skip)]
-    #[serde(skip)]
-    pub users: Vec<Arc<UserModel>>,
+    pub post: Option<Arc<PostModel>>,
+    #[sqlx(skip)]
+    pub tag: Option<Arc<TagModel>>,
 }
 
-pub struct Role;
+pub struct PostTag;
 
 #[derive(Debug, rustorm::serde::Serialize, rustorm::serde::Deserialize)]
-pub struct RoleCreate {
-    pub name: String,
+pub struct PostTagCreate {
+    pub post_id: i32,
+    pub tag_id: i32,
 }
 
-impl rustorm::executor::InsertData<Role> for RoleCreate {
+impl rustorm::executor::InsertData<PostTag> for PostTagCreate {
     fn columns(&self) -> &'static [&'static str] {
-        &["name"]
+        &["post_id", "tag_id"]
     }
 
     fn values(&self) -> Vec<rustorm::value::BindValue> {
         vec![
-            rustorm::value::BindValue::String((&self.name).clone()),
+            rustorm::value::BindValue::I64(i64::from(*(&self.post_id))),
+            rustorm::value::BindValue::I64(i64::from(*(&self.tag_id))),
         ]
     }
 }
 
 #[derive(Debug, rustorm::serde::Serialize, rustorm::serde::Deserialize)]
-pub struct RoleUpdate {
-    pub name: Option<String>,
+pub struct PostTagUpdate {
+    pub post_id: Option<i32>,
+    pub tag_id: Option<i32>,
 }
 
-impl rustorm::executor::UpdateData<Role> for RoleUpdate {
+impl rustorm::executor::UpdateData<PostTag> for PostTagUpdate {
     fn columns(&self) -> Vec<&'static str> {
         let mut columns = Vec::new();
-        if self.name.is_some() {
-            columns.push("name");
+        if self.post_id.is_some() {
+            columns.push("post_id");
+        }
+        if self.tag_id.is_some() {
+            columns.push("tag_id");
         }
         columns
     }
 
     fn values(&self) -> Vec<rustorm::value::BindValue> {
         let mut values = Vec::new();
-        if let Some(value) = &self.name {
-            values.push(rustorm::value::BindValue::String((value).clone()));
+        if let Some(value) = &self.post_id {
+            values.push(rustorm::value::BindValue::I64(i64::from(*(value))));
+        }
+        if let Some(value) = &self.tag_id {
+            values.push(rustorm::value::BindValue::I64(i64::from(*(value))));
         }
         values
     }
 }
 
-impl Entity for Role {
-    type Model = RoleModel;
-    const TABLE: &'static str = "roles";
+impl Entity for PostTag {
+    type Model = PostTagModel;
+    const TABLE: &'static str = "post_tags";
     const COLUMNS: &'static [Column] = &[
         Column::new("id"),
-        Column::new("name"),
+        Column::new("post_id"),
+        Column::new("tag_id"),
     ];
 }
 
-impl Role {
+impl PostTag {
     #[allow(non_upper_case_globals)]
     pub const id: Field<Self, i32> = Field::new("id");
 
     #[allow(non_upper_case_globals)]
-    pub const name: Field<Self, String> = Field::new("name");
+    pub const post_id: Field<Self, i32> = Field::new("post_id");
 
     #[allow(non_upper_case_globals)]
-    pub const users: Relation<Self, User, ManyToMany> =
-        Relation::<Self, User, ManyToMany>::many_to_many(
-            Self::id,
-            User::id,
-            "user_roles",
-            Column::new("role_id"),
-            Column::new("user_id"),
-        );
+    pub const tag_id: Field<Self, i32> = Field::new("tag_id");
+
+    #[allow(non_upper_case_globals)]
+    pub const post: Relation<Self, Post, ManyToOne> = Relation::new(Self::post_id, Post::id);
+
+    #[allow(non_upper_case_globals)]
+    pub const tag: Relation<Self, Tag, ManyToOne> = Relation::new(Self::tag_id, Tag::id);
 
 }
 
-impl RelationKey for RoleModel {
+impl RelationKey for PostTagModel {
     fn relation_key(&self, column: Column) -> Option<i64> {
         match column.name() {
             "id" => Some(self.id as i64),
+            "post_id" => Some(self.post_id as i64),
+            "tag_id" => Some(self.tag_id as i64),
             _ => None,
         }
     }
 }
 
-impl RelationLoader<Arc<UserModel>> for RoleModel {
-    fn load_relation(&mut self, related: Vec<Arc<UserModel>>) {
-        self.users = related;
+impl SingleRelationLoader<Arc<PostModel>> for PostTagModel {
+    fn load_relation(&mut self, related: Option<Arc<PostModel>>) {
+        self.post = related;
+    }
+}
+
+impl SingleRelationLoader<Arc<TagModel>> for PostTagModel {
+    fn load_relation(&mut self, related: Option<Arc<TagModel>>) {
+        self.tag = related;
     }
 }
 
